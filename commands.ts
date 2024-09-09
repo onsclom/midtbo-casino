@@ -217,6 +217,7 @@ export default [
         await interaction.reply(
           `<@${interaction.user.id}> canceled the hand game!`,
         );
+        return;
       }
       await interaction.reply({
         content: "You don't have a hand game in progress to cancel!",
