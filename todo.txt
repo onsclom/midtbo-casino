@@ -1,0 +1,11 @@
+- make "database"
+  - discord id: {
+    - marbles: 0
+  }
+- command "buy in"
+  - /buy-in 10
+    - it makes a venmo link to pay me 10. it does honor system (manual for now)
+- cash out "cash out"
+  - /cash-out
+    - it @s me to do a payout (manual for now)
+- command "hand-game"
