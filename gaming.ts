@@ -1,33 +1,57 @@
-let playerData: Record<
-  string,
-  {
-    marbles: number;
-  }
-> = {};
+export async function clearHandGame() {
+  data.currentHandGame = null;
+  await Bun.write(fileName, JSON.stringify(data));
+}
+
+export async function createHandGame(
+  initiator: string,
+  hand: "left" | "right",
+) {
+  data.currentHandGame = {
+    initiator,
+    hand,
+  };
+  await Bun.write(fileName, JSON.stringify(data));
+}
+
+let data: {
+  users: Record<string, { marbles: number }>;
+  currentHandGame: null | {
+    hand: "left" | "right";
+    initiator: string; // discord user id
+  };
+} = {
+  users: {},
+  currentHandGame: null,
+};
 
 // if data.json exists read and use that
 const fileName = "data.json";
 
-// init playerData
+// init data
 {
   let dataFile = Bun.file(fileName);
   const fileExists = await dataFile.exists();
   if (fileExists) {
-    playerData = await dataFile.json();
+    data = await dataFile.json();
   } else {
-    await Bun.write(fileName, JSON.stringify(playerData));
+    await Bun.write(fileName, JSON.stringify(data));
   }
 }
 
 export function getMarbles(userId: string) {
-  return playerData[userId]?.marbles ?? 0;
+  return data.users[userId]?.marbles ?? 0;
+}
+
+export function getCurrentHandGame() {
+  return data.currentHandGame;
 }
 
 export async function setMarbles(userId: string, marbles: number) {
-  if (!playerData[userId]) {
-    playerData[userId] = { marbles };
+  if (!data.users[userId]) {
+    data.users[userId] = { marbles };
   } else {
-    playerData[userId].marbles = marbles;
+    data.users[userId].marbles = marbles;
   }
-  await Bun.write(fileName, JSON.stringify(playerData));
+  await Bun.write(fileName, JSON.stringify(data));
 }

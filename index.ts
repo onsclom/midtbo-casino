@@ -9,7 +9,6 @@ client.once(Events.ClientReady, (readyClient) => {
 });
 
 client.on(Events.InteractionCreate, (interaction) => {
-  console.log(interaction);
   if (!interaction.isChatInputCommand()) return;
 
   const commmand = commands.find(

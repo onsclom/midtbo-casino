@@ -1,5 +1,11 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
-import { getMarbles, setMarbles } from "./gaming";
+import {
+  clearHandGame,
+  createHandGame,
+  getCurrentHandGame,
+  getMarbles,
+  setMarbles,
+} from "./gaming";
 
 export default [
   {
@@ -94,9 +100,128 @@ export default [
       .setDescription("Check how many marbles you have"),
     async execute(interaction: ChatInputCommandInteraction) {
       const marbles = getMarbles(interaction.user.id);
-      await interaction.reply(
-        `You have ${marbles} ${pluralize("marble", marbles)}`,
-      );
+      await interaction.reply({
+        content: `You have ${marbles} ${pluralize("marble", marbles)}`,
+        ephemeral: true,
+      });
+    },
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName("offer-hand-game")
+      .setDescription("Make a hand game for 1 marble")
+      .addStringOption((option) =>
+        option
+          .setName("hand")
+          .setDescription("Hand to hide the marble in")
+          .setRequired(true)
+          .addChoices([
+            {
+              name: "left",
+              value: "left",
+            },
+            {
+              name: "right",
+              value: "right",
+            },
+          ]),
+      ),
+    async execute(interaction: ChatInputCommandInteraction) {
+      const hand = interaction.options.getString("hand", true) as
+        | "left"
+        | "right";
+      if (getCurrentHandGame()) {
+        await interaction.reply(
+          "There is already a hand game in progress! Use **/accept-hand-game** to play.",
+        );
+        return;
+      } else {
+        const userMarbles = getMarbles(interaction.user.id);
+        if (userMarbles < 1) {
+          await interaction.reply({
+            content: "You need at least 1 marble to make a hand game!",
+            ephemeral: true,
+          });
+          return;
+        }
+        // TODO: think about race conditions
+        setMarbles(interaction.user.id, userMarbles - 1);
+        createHandGame(interaction.user.id, hand);
+        await interaction.reply(
+          `<@${interaction.user.id}> has made a hand game for $1! Use **/accept-hand-game** to play.`,
+        );
+      }
+    },
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName("accept-hand-game")
+      .setDescription("Accept a hand game for 1 marble")
+      .addStringOption((option) =>
+        option
+          .setName("hand")
+          .setDescription("Hand to guess the marble is in")
+          .addChoices([
+            {
+              name: "left",
+              value: "left",
+            },
+            {
+              name: "right",
+              value: "right",
+            },
+          ]),
+      ),
+    async execute(interaction: ChatInputCommandInteraction) {
+      const hand = interaction.options.getString("hand", true) as
+        | "left"
+        | "right";
+      const game = getCurrentHandGame();
+      if (game) {
+        const playerMarbles = getMarbles(interaction.user.id);
+        if (playerMarbles < 1) {
+          await interaction.reply({
+            content: "You need at least 1 marble to accept a hand game!",
+            ephemeral: true,
+          });
+          return;
+        }
+        await setMarbles(interaction.user.id, playerMarbles - 1);
+        const winner =
+          game.hand === hand ? interaction.user.id : game.initiator;
+        setMarbles(winner, getMarbles(winner) + 2);
+        await clearHandGame();
+        await interaction.reply(
+          `<@${interaction.user.id}> guessed ${
+            game.hand === hand ? "correctly" : "incorrectly"
+          } with ${hand}! <@${winner}> won a marble!`,
+        );
+      } else {
+        await interaction.reply({
+          content:
+            "There is no hand game in progress! Make one with **/offer-hand-game**.",
+          ephemeral: true,
+        });
+      }
+    },
+  },
+  {
+    data: new SlashCommandBuilder()
+      .setName("cancel-hand-game")
+      .setDescription("Cancel a hand game you made"),
+    async execute(interaction: ChatInputCommandInteraction) {
+      const game = getCurrentHandGame();
+      if (game && game.initiator === interaction.user.id) {
+        setMarbles(interaction.user.id, getMarbles(interaction.user.id) + 1);
+        await clearHandGame();
+        await interaction.reply(
+          `<@${interaction.user.id}> canceled the hand game!`,
+        );
+      }
+      await interaction.reply({
+        content: "You don't have a hand game in progress to cancel!",
+        ephemeral: true,
+      });
     },
   },
 ];
