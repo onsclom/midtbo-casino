@@ -1,6 +1,5 @@
 # Based on https://raw.githubusercontent.com/github/gitignore/main/Node.gitignore
 token
-data.json
 
 # Logs
 
@@ -175,3 +174,7 @@ dist
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# for midtbo-casino
+data.json
+data-*.json
