@@ -121,7 +121,7 @@ export default [
         | "right";
       if (data.currentHandGame) {
         await interaction.reply(
-          "There is already a hand game in progress! Use **/accept-hand-game** to play.",
+          "There is already a hand game in progress! Accept with **/accept-hand-game**.",
         );
         return;
       }
@@ -136,7 +136,7 @@ export default [
       data.marbles[interaction.user.id] = userMarbles - 1;
       data.currentHandGame = { initiator: interaction.user.id, hand };
       await interaction.reply(
-        `<@${interaction.user.id}> has made a hand game for $1! Use **/accept-hand-game** to play.`,
+        `<@${interaction.user.id}> has made a hand game for $1! Accept with **/accept-hand-game**.`,
       );
     },
   },
@@ -181,7 +181,7 @@ export default [
       } else {
         await interaction.reply({
           content:
-            "There is no hand game in progress! Make one with **/offer-hand-game**.",
+            "There is no hand game in progress! Offer one with **/offer-hand-game**.",
           ephemeral: true,
         });
       }
@@ -209,20 +209,90 @@ export default [
     },
   },
 
-  // // dice
-  // {
-  //   data: new SlashCommandBuilder()
-  //     .setName("dice")
-  //     .setDescription("Loser pays winner for each point difference")
-  //     .addIntegerOption((option) =>
-  //       option
-  //         .setName("sides")
-  //         .setDescription("Amount of coinflips (1 marble each)")
-  //         .setMinValue(1)
-  //         .setRequired(true),
-  //     ),
-  //   async execute(interaction: ChatInputCommandInteraction) {},
-  // },
+  // dice
+  {
+    data: new SlashCommandBuilder()
+      .setName("dice")
+      .setDescription("Loser pays winner for each point difference")
+      .addIntegerOption((option) =>
+        option
+          .setName("sides")
+          .setDescription("Amount of coinflips (1 marble each)")
+          .setMinValue(1)
+          .setRequired(true),
+      ),
+    async execute(interaction: ChatInputCommandInteraction) {
+      const sides = interaction.options.getInteger("sides", true);
+      const existingGame = data.dice[sides];
+      if (existingGame) {
+        const initiator = existingGame.initiator;
+        if (initiator === interaction.user.id) {
+          // cancel the game
+          data.marbles[interaction.user.id] =
+            (data.marbles[interaction.user.id] ?? 0) + sides;
+          delete data.dice[sides];
+          await interaction.reply(
+            `<@${interaction.user.id}> canceled their ${sides}-sided dice game!`,
+          );
+          return;
+        }
+
+        const playerMarbles = data.marbles[interaction.user.id] ?? 0;
+        if (playerMarbles < sides) {
+          await interaction.reply({
+            content: `You need at least ${sides} marbles to play a ${sides}-sided dice game!`,
+            ephemeral: true,
+          });
+          return;
+        }
+
+        data.marbles[interaction.user.id] = playerMarbles - sides;
+
+        const initiatorRoll = Math.floor(Math.random() * sides) + 1;
+        const playerRoll = Math.floor(Math.random() * sides) + 1;
+        const difference = Math.abs(initiatorRoll - playerRoll);
+        data.marbles[initiator] =
+          initiatorRoll > playerRoll ? sides + difference : sides - difference;
+        data.marbles[interaction.user.id] =
+          playerRoll > initiatorRoll ? sides + difference : sides - difference;
+
+        const winner =
+          initiatorRoll > playerRoll ? initiator : interaction.user.id;
+        const loser = winner === initiator ? interaction.user.id : initiator;
+
+        const result =
+          difference === 0
+            ? `It's a **tie**! Both players get their marbles back.`
+            : `<@${loser}> gives <@${winner}> **${difference} ${pluralize("marble", difference)}!`;
+
+        await interaction.reply(`Both players roll a ${sides}-sided dice!
+
+<@${interaction.user.id}> rolled a **${playerRoll}**!
+<@${initiator}> rolled a **${initiatorRoll}**!
+
+${result}`);
+        return;
+      }
+
+      const playerMarbles = data.marbles[interaction.user.id] ?? 0;
+      if (playerMarbles < sides) {
+        await interaction.reply({
+          content: `You need at least ${sides} marbles to play a ${sides}-sided dice game!`,
+          ephemeral: true,
+        });
+        return;
+      }
+
+      data.marbles[interaction.user.id] = playerMarbles - sides;
+      data.dice[sides] = {
+        initiator: interaction.user.id,
+      };
+
+      await interaction.reply(
+        `<@${interaction.user.id}> started a ${sides}-sided dice game! Accept with **/dice ${sides}**.`,
+      );
+    },
+  },
 
   // multi-flip
   {
@@ -318,7 +388,7 @@ ${resultText}`,
       data.marbles[interaction.user.id] -= flips;
       data.multiFlips[flips] = { initiator: interaction.user.id };
       await interaction.reply(
-        `<@${interaction.user.id}> offered a ${flips} multi-flip! \`/multi-flip ${flips}\` to accept.`,
+        `<@${interaction.user.id}> offered a ${flips} multi-flip! Accept with **/multi-flip ${flips}**.`,
       );
     },
   },

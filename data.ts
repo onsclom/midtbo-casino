@@ -12,6 +12,7 @@ export let data: {
   marbles: {},
   currentHandGame: null,
   multiFlips: {},
+  dice: {},
 };
 
 export async function setupData() {
@@ -19,7 +20,7 @@ export async function setupData() {
   const fileExists = await dataFile.exists();
   if (fileExists) {
     const saveData = (await dataFile.json()) as Partial<typeof data>;
-    // merge data (allow adding new fields seamlessly)
+    // merge data (makes adding new fields seamless)
     data = { ...data, ...saveData };
   }
 
