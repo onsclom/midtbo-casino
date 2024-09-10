@@ -68,7 +68,7 @@ export default [
         });
         return;
       }
-      data.marbles[interaction.user.id] = existingMarbles - amount;
+      data.marbles[interaction.user.id] -= amount;
       const link = generateVenmoLink(
         amount,
         `Cashing out ${amount} ${pluralize("marble", amount)}`,
@@ -133,7 +133,7 @@ export default [
         });
         return;
       }
-      data.marbles[interaction.user.id] = userMarbles - 1;
+      data.marbles[interaction.user.id] -= 1;
       data.currentHandGame = { initiator: interaction.user.id, hand };
       await interaction.reply(
         `<@${interaction.user.id}> has made a hand game for $1! Accept with **/accept-hand-game**.`,
@@ -166,10 +166,10 @@ export default [
           });
           return;
         }
-        data.marbles[interaction.user.id] = playerMarbles - 1;
+        data.marbles[interaction.user.id] -= 1;
         const winner =
           game.hand === chosenHand ? interaction.user.id : game.initiator;
-        data.marbles[winner] = (data.marbles[winner] ?? 0) + 2;
+        data.marbles[winner] += 2;
         data.currentHandGame = null;
         const loser =
           winner === interaction.user.id ? game.initiator : interaction.user.id;
@@ -194,8 +194,7 @@ export default [
     async execute(interaction: ChatInputCommandInteraction) {
       const game = data.currentHandGame;
       if (game && game.initiator === interaction.user.id) {
-        data.marbles[interaction.user.id] =
-          (data.marbles[interaction.user.id] ?? 0) + 1;
+        data.marbles[interaction.user.id] += 1;
         data.currentHandGame = null;
         await interaction.reply(
           `<@${interaction.user.id}> canceled the hand game!`,
@@ -206,6 +205,21 @@ export default [
         content: "You don't have a hand game in progress to cancel!",
         ephemeral: true,
       });
+    },
+  },
+
+  {
+    data: new SlashCommandBuilder()
+      .setName("leaderboard")
+      .setDescription("Check the marbles in the server"),
+    async execute(interaction: ChatInputCommandInteraction) {
+      const marbles = data.marbles;
+      const leaderboard = Object.entries(marbles);
+      leaderboard.sort((a, b) => b[1] - a[1]);
+      const leaderboardString = leaderboard.map(([id, marbles], index) => {
+        return `${index + 1}. <@${id}>: **${marbles} ${pluralize("marble", marbles)}**`;
+      });
+      await interaction.reply(leaderboardString.join("\n"));
     },
   },
 
@@ -228,8 +242,7 @@ export default [
         const initiator = existingGame.initiator;
         if (initiator === interaction.user.id) {
           // cancel the game
-          data.marbles[interaction.user.id] =
-            (data.marbles[interaction.user.id] ?? 0) + sides;
+          data.marbles[interaction.user.id] += sides;
           delete data.dice[sides];
           await interaction.reply(
             `<@${interaction.user.id}> canceled their ${sides}-sided dice game!`,
@@ -246,24 +259,23 @@ export default [
           return;
         }
 
-        data.marbles[interaction.user.id] = playerMarbles - sides;
-
+        data.marbles[interaction.user.id] -= sides;
         const initiatorRoll = Math.floor(Math.random() * sides) + 1;
         const playerRoll = Math.floor(Math.random() * sides) + 1;
         const difference = Math.abs(initiatorRoll - playerRoll);
-        data.marbles[initiator] =
+        data.marbles[initiator] +=
           initiatorRoll > playerRoll ? sides + difference : sides - difference;
-        data.marbles[interaction.user.id] =
+        data.marbles[interaction.user.id] +=
           playerRoll > initiatorRoll ? sides + difference : sides - difference;
+        delete data.dice[sides];
 
         const winner =
           initiatorRoll > playerRoll ? initiator : interaction.user.id;
         const loser = winner === initiator ? interaction.user.id : initiator;
-
         const result =
           difference === 0
             ? `It's a **tie**! Both players get their marbles back.`
-            : `<@${loser}> gives <@${winner}> **${difference} ${pluralize("marble", difference)}!`;
+            : `<@${loser}> gives <@${winner}> **${difference} ${pluralize("marble", difference)}**!`;
 
         await interaction.reply(`Both players roll a ${sides}-sided dice!
 
@@ -282,12 +294,8 @@ ${result}`);
         });
         return;
       }
-
-      data.marbles[interaction.user.id] = playerMarbles - sides;
-      data.dice[sides] = {
-        initiator: interaction.user.id,
-      };
-
+      data.marbles[interaction.user.id] -= sides;
+      data.dice[sides] = { initiator: interaction.user.id };
       await interaction.reply(
         `<@${interaction.user.id}> started a ${sides}-sided dice game! Accept with **/dice ${sides}**.`,
       );
@@ -314,8 +322,7 @@ ${result}`);
         const initiator = existingGame.initiator;
         if (initiator === interaction.user.id) {
           // cancel the game
-          data.marbles[interaction.user.id] =
-            (data.marbles[interaction.user.id] ?? 0) + flips;
+          data.marbles[interaction.user.id] += flips;
           delete data.multiFlips[flips];
           await interaction.reply(
             `<@${interaction.user.id}> canceled their ${flips} multi-flip offer.`,
