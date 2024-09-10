@@ -6,9 +6,12 @@ export let data: {
     hand: "left" | "right";
     initiator: string;
   };
+  multiFlips: Record<number, { initiator: string }>; // wager -> { initiator }
+  dice: Record<string, { initiator: string }>; // dice size -> { initiator }
 } = {
   marbles: {},
   currentHandGame: null,
+  multiFlips: {},
 };
 
 export async function setupData() {

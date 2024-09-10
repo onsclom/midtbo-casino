@@ -18,8 +18,10 @@ export default [
         option
           .setName("amount")
           .setDescription("Amount of $ to buy in")
+          .setMinValue(1)
           .setRequired(true),
       ),
+
     async execute(interaction: ChatInputCommandInteraction) {
       const amount = interaction.options.getInteger("amount", true);
       const link = generateVenmoLink(
@@ -50,6 +52,7 @@ export default [
         option
           .setName("amount")
           .setDescription("Amount of marbles to cashout")
+          .setMinValue(1)
           .setRequired(true),
       ),
     async execute(interaction: ChatInputCommandInteraction) {
@@ -96,6 +99,8 @@ export default [
       });
     },
   },
+
+  // hand game
   {
     data: new SlashCommandBuilder()
       .setName("offer-hand-game")
@@ -201,6 +206,120 @@ export default [
         content: "You don't have a hand game in progress to cancel!",
         ephemeral: true,
       });
+    },
+  },
+
+  // // dice
+  // {
+  //   data: new SlashCommandBuilder()
+  //     .setName("dice")
+  //     .setDescription("Loser pays winner for each point difference")
+  //     .addIntegerOption((option) =>
+  //       option
+  //         .setName("sides")
+  //         .setDescription("Amount of coinflips (1 marble each)")
+  //         .setMinValue(1)
+  //         .setRequired(true),
+  //     ),
+  //   async execute(interaction: ChatInputCommandInteraction) {},
+  // },
+
+  // multi-flip
+  {
+    data: new SlashCommandBuilder()
+      .setName("multi-flip")
+      .setDescription("Gamble multiple coinflips (1 marble per flip)")
+      .addIntegerOption((option) =>
+        option
+          .setName("flips")
+          .setDescription("Amount of coinflips (1 marble each)")
+          .setMinValue(1)
+          .setRequired(true),
+      ),
+    async execute(interaction: ChatInputCommandInteraction) {
+      const flips = interaction.options.getInteger("flips", true);
+
+      const existingGame = data.multiFlips[flips];
+      if (existingGame) {
+        const initiator = existingGame.initiator;
+        if (initiator === interaction.user.id) {
+          // cancel the game
+          data.marbles[interaction.user.id] =
+            (data.marbles[interaction.user.id] ?? 0) + flips;
+          delete data.multiFlips[flips];
+          await interaction.reply(
+            `<@${interaction.user.id}> canceled their ${flips} multi-flip offer.`,
+          );
+          return;
+        }
+        // play the game
+        // check they have enough
+        const playerMarbles = data.marbles[interaction.user.id] ?? 0;
+        if (playerMarbles < flips) {
+          await interaction.reply({
+            content: `You need ${flips} ${pluralize("marble", flips)} but only have ${playerMarbles}!`,
+            ephemeral: true,
+          });
+          return;
+        }
+        data.marbles[interaction.user.id] -= flips;
+        const results = Array.from({ length: flips }, () =>
+          Math.random() < 0.5 ? initiator : interaction.user.id,
+        );
+        const initiatorWins = results.filter((id) => id === initiator).length;
+        const playerWins = flips - initiatorWins;
+        data.marbles[initiator] += flips - playerWins + initiatorWins;
+        data.marbles[interaction.user.id] += flips - initiatorWins + playerWins;
+        delete data.multiFlips[flips];
+        const winnerScore = Math.max(initiatorWins, playerWins);
+        const loserScore = Math.min(initiatorWins, playerWins);
+        const netScore = winnerScore - loserScore;
+        const winner =
+          initiatorWins > playerWins ? initiator : interaction.user.id;
+        const loser =
+          initiatorWins > playerWins ? interaction.user.id : initiator;
+        const initiatorEmoji =
+          initiatorWins === playerWins
+            ? `😑`
+            : initiator === winner
+              ? `😎`
+              : `😢`;
+        const playerEmoji =
+          initiatorWins === playerWins
+            ? `😑`
+            : interaction.user.id === winner
+              ? `😎`
+              : `😢`;
+        const resultText =
+          initiatorWins === playerWins
+            ? "**It's a tie!**"
+            : `<@${loser}> gives <@${winner}> **${netScore} ${pluralize(
+                "marble",
+                netScore,
+              )}**!`;
+        await interaction.reply(
+          `<@${initiator}> won **${initiatorWins}/${flips}** (${Math.round((initiatorWins / flips) * 100)}%) ${initiatorEmoji}
+<@${interaction.user.id}> won **${playerWins}/${flips}** (${Math.round((playerWins / flips) * 100)}%) ${playerEmoji}
+
+${resultText}`,
+        );
+        return;
+      }
+
+      // check if enough
+      const playerMarbles = data.marbles[interaction.user.id] ?? 0;
+      if (playerMarbles < flips) {
+        await interaction.reply({
+          content: `You need ${flips} ${pluralize("marble", flips)} but only have ${playerMarbles}!`,
+          ephemeral: true,
+        });
+        return;
+      }
+      data.marbles[interaction.user.id] -= flips;
+      data.multiFlips[flips] = { initiator: interaction.user.id };
+      await interaction.reply(
+        `<@${interaction.user.id}> offered a ${flips} multi-flip! \`/multi-flip ${flips}\` to accept.`,
+      );
     },
   },
 ];
