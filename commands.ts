@@ -4,6 +4,82 @@ import { data } from "./data";
 export default [
   {
     data: new SlashCommandBuilder()
+      .setName("pull-slot")
+      .setDescription("Put $1 in the slot machine"),
+    async execute(interaction: ChatInputCommandInteraction) {
+      // check if user has at least 1
+      const userMarbles = data.marbles[interaction.user.id] ?? 0;
+      if (userMarbles < 1) {
+        await interaction.reply({
+          content: "You don't have enough marbles to play",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      // playing
+      data.marbles[interaction.user.id] = userMarbles - 1;
+      const previouslySpent = data.slotMachine[interaction.user.id]?.spent ?? 0;
+      data.slotMachine[interaction.user.id] = { spent: previouslySpent + 1 };
+
+      const probabilityOfWinningJackpot = 0.05;
+      const won = Math.random() < probabilityOfWinningJackpot;
+      const jackpotSize = Object.values(data.slotMachine).reduce(
+        (acc, { spent }) => acc + spent,
+        0,
+      );
+
+      if (won) {
+        // do all the jackpot juice
+        const badBeatHighest = Object.values(data.slotMachine).reduce(
+          (acc, { spent }) => Math.max(acc, spent),
+          0,
+        );
+        const badBeatWinners = Object.entries(data.slotMachine)
+          .filter(([, { spent }]) => spent === badBeatHighest)
+          .map(([userId]) => userId);
+        const badBeatWin = Math.floor(jackpotSize / 2);
+        const playerWin = badBeatWin + (jackpotSize % 2);
+        payoutBadBeatWinners(data.marbles, badBeatWinners, badBeatWin);
+        data.marbles[interaction.user.id] += playerWin;
+
+        /*
+        ```
+        @<user1> triggered the jackpot of <jackpot> marbles!
+
+        @<user1> wins <jackpot/2> marbles!
+        @<user2> wins <jackpot/2> marbles! (plurality investor)
+
+        {
+          {if left over marbles}
+            x left over marbles going into the next jackpot!
+        }
+        ```
+        */
+
+        // todo: finish this message
+        await interaction.reply(`@<${interaction.user.id}> triggered the jackpot of ${jackpotSize} marbles!
+
+@<${interaction.user.id}> wins ${playerWin} marbles!
+`);
+        return;
+      }
+
+      // if we don't win
+      await interaction.reply(`@<${interaction.user.id}> put in a marble!
+
+The jackpot is now at ${jackpotSize} marbles!
+
+Bad beat leadboard:
+${badBeatLeaderboard(data.slotMachine)}
+
+**/pull-slot** to put in a marble for a 5% chance to win the jackpot!
+50% of the jackpot goes to the winner
+50% of the jackpot goes to the bad beat leader`);
+    },
+  },
+  {
+    data: new SlashCommandBuilder()
       .setName("ping")
       .setDescription("Replies with Pong!"),
     async execute(interaction: ChatInputCommandInteraction) {
@@ -414,4 +490,15 @@ function generateVenmoLink(
   return `https://venmo.com/?txn=${type}&recipients=${encodeURIComponent(person)}&amount=${encodeURIComponent(
     amount.toString(),
   )}&note=${encodeURIComponent(note)}`;
+}
+
+function badBeatLeaderboard(slotMachine: Record<string, { spent: number }>) {
+  throw new Error("Function not implemented.");
+}
+function payoutBadBeatWinners(
+  marbles: Record<string, number>,
+  badBeatWinners: string[],
+  badBeatWin: number,
+) {
+  throw new Error("Function not implemented.");
 }
