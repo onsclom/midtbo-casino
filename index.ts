@@ -1,6 +1,15 @@
 import { Client, Events, GatewayIntentBits, REST, Routes } from "discord.js";
-import commands from "./commands";
 import { setupData } from "./data";
+import ping from "./commands/ping";
+import buyIn from "./commands/buy-in";
+import cashOut from "./commands/cash-out";
+import me from "./commands/me";
+import offerHandGame from "./commands/offer-hand-game";
+import acceptHandGame from "./commands/accept-hand-game";
+import cancelHandGame from "./commands/cancel-hand-game";
+import dice from "./commands/dice";
+import leaderboard from "./commands/leaderboard";
+import multiFlip from "./commands/multi-flip";
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -8,6 +17,19 @@ const GUILD_ID = process.env.GUILD_ID;
 if (!TOKEN) throw new Error("DISCORD_TOKEN is required.");
 if (!CLIENT_ID) throw new Error("DISCORD_CLIENT_ID is required.");
 if (!GUILD_ID) throw new Error("DISCORD_GUILD_ID is required.");
+
+const commands = [
+  ping,
+  buyIn,
+  cashOut,
+  me,
+  offerHandGame,
+  acceptHandGame,
+  cancelHandGame,
+  dice,
+  leaderboard,
+  multiFlip,
+];
 
 {
   // register commands

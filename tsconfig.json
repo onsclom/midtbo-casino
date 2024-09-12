@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
 
     // Enable latest features
     "lib": ["ESNext", "DOM"],

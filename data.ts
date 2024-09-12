@@ -41,3 +41,11 @@ export async function setupData() {
     1000 * 60 * 60,
   );
 }
+
+export function addMarbles(userId: string, amount: number) {
+  data.marbles[userId] = (data.marbles[userId] ?? 0) + amount;
+}
+
+export function subtractMarbles(userId: string, amount: number) {
+  data.marbles[userId] = (data.marbles[userId] ?? 0) - amount;
+}
