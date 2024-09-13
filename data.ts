@@ -8,11 +8,17 @@ export let data: {
   };
   multiFlips: Record<number, { initiator: string }>; // wager -> { initiator }
   dice: Record<string, { initiator: string }>; // dice size -> { initiator }
+  jackpot: {
+    initiator: string;
+    size: number;
+    attempts: number;
+  } | null;
 } = {
   marbles: {},
   currentHandGame: null,
   multiFlips: {},
   dice: {},
+  jackpot: null,
 };
 
 export async function setupData() {

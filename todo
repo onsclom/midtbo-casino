@@ -2,3 +2,28 @@
 - finish slot machine game
 - make leaderboard and me list current bets?
 - add button UI to accept bets
+
+---
+
+idea: let players create and own slot machines!
+
+- /create-jackpot <amount>:
+```
+<@user> has created a jackpot of <amount>!
+
+Use **/play-jackpot** to pay $1 for a {(1/amount)*100}% chance at the jackpot!
+```
+
+(while a jackpot is active)
+- /play-jackpot
+```
+<@user> missed and gives 1 marble to {sponsor}!
+
+<@sponsor> has made {amount} so far.
+```
+OR
+```
+<@user> won the jackpot of {amount}!
+
+Use **/create-jackpot <amount>** to create a new jackpot!
+```

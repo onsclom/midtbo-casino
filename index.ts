@@ -10,6 +10,8 @@ import cancelHandGame from "./commands/cancel-hand-game";
 import dice from "./commands/dice";
 import leaderboard from "./commands/leaderboard";
 import multiFlip from "./commands/multi-flip";
+import createJackpot from "./commands/create-jackpot";
+import playJackpot from "./commands/play-jackpot";
 
 const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -29,6 +31,8 @@ const commands = [
   dice,
   leaderboard,
   multiFlip,
+  createJackpot,
+  playJackpot,
 ];
 
 {
