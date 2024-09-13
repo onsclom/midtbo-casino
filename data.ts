@@ -40,7 +40,7 @@ export async function setupData() {
   setInterval(
     async () => {
       await Bun.write(
-        `data-${new Date().toISOString()}.json`,
+        `data-${new Date().toISOString().replaceAll(":", "_")}.json`,
         JSON.stringify(data),
       );
     },
